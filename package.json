@@ -1,0 +1,10 @@
+{
+  "name": "mcp-test",
+  "version": "1.0.0",
+  "description": "Simple MCP Test Server",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {}
+}
