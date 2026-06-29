@@ -1,10 +1,26 @@
 {
-  "name": "mcp-test",
+  "name": "prime-policy",
   "version": "1.0.0",
-  "description": "Simple MCP Test Server",
-  "main": "index.js",
+  "description": "Prime-Policy MCP server (Remote, Streamable HTTP, Stateless) for PlayMCP",
+  "type": "module",
+  "main": "server.js",
   "scripts": {
-    "start": "node index.js"
+    "start": "node server.js",
+    "dev": "node --watch server.js"
   },
-  "dependencies": {}
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "playmcp",
+    "streamable-http"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "express": "^4.21.2",
+    "zod": "^3.25.76"
+  }
 }
