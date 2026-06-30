@@ -1,107 +1,142 @@
 # Prime-Policy MCP Server
 
-Remote MCP server for **PlayMCP**, implementing the **Streamable HTTP** transport
-with the official [`@modelcontextprotocol/sdk`](https://www.npmjs.com/package/@modelcontextprotocol/sdk).
-Runs **stateless** by default (PlayMCP recommended) and exposes 5 tools.
+온통청년(YouthCenter) OpenAPI를 활용한 **PlayMCP** 등록용 Remote MCP 서버입니다.  
+**Streamable HTTP** 전송 방식, **Stateless** 모드로 동작합니다.
 
-- MCP Spec: 2025-03-26 ~ 2025-11-25
+- MCP Spec: 2025-03-26 이상
 - Transport: Streamable HTTP (`POST /mcp`)
 - Health: `GET /health`
-- No stdio (PlayMCP does not support stdio)
 
-## Tools
+## Tools (6개)
 
-| Name                 | Description                                              | read-only | open-world | idempotent |
-| -------------------- | -------------------------------------------------------- | :-------: | :--------: | :--------: |
-| `hello`              | Connectivity check / greeting.                           |     ✅    |     ❌     |     ✅     |
-| `get_time`           | Current server time (ISO-8601 + optional timezone).      |     ✅    |     ❌     |     ❌     |
-| `policy_search`      | Search policies by keyword / category / region.          |     ✅    |     ✅     |     ✅     |
-| `policy_categories`  | List available policy categories.                        |     ✅    |     ❌     |     ✅     |
-| `policy_detail`      | Full details of a single policy by id.                   |     ✅    |     ✅     |     ✅     |
+| Tool | 설명 | read-only | open-world | idempotent |
+|------|------|:---------:|:----------:|:----------:|
+| `get_time` | 서버 현재 시간 조회 | ✅ | ❌ | ❌ |
+| `policy_search` | 키워드 기반 정책 검색 | ✅ | ✅ | ✅ |
+| `policy_detail` | 정책 ID로 상세 조회 | ✅ | ✅ | ✅ |
+| `policy_region` | 지역별 정책 조회 | ✅ | ✅ | ✅ |
+| `policy_category` | 분야별 정책 조회 | ✅ | ✅ | ✅ |
+| `policy_recommend` | 나이/지역/취업상태 기반 맞춤 추천 | ✅ | ✅ | ❌ |
 
-Every tool declares `annotations` (`title`, `readOnlyHint`, `destructiveHint`,
-`openWorldHint`, `idempotentHint`) as required by PlayMCP.
-
-## Project structure
+## 프로젝트 구조
 
 ```
-Prime-Policy
+Prime-Policy/
 ├── Dockerfile
 ├── package.json
-├── server.js          # Express app + lifecycle
-├── mcpServer.js       # McpServer factory
-├── config.js
-├── routes/            # health.js, mcp.js (Streamable HTTP)
-├── tools/             # one file per tool + registry.js + index.js
-├── services/          # policyService.js (data access)
-├── middleware/        # logger.js, errorHandler.js
-├── data/              # policy.json (sample dataset)
-└── utils/             # response.js
+├── server.js              # Express 앱 진입점
+├── mcpServer.js           # McpServer 팩토리
+├── config.js              # 환경변수 설정
+├── .env.example
+│
+├── routes/
+│   ├── health.js          # GET /health
+│   └── mcp.js             # POST /mcp (Streamable HTTP)
+│
+├── api/
+│   └── youthCenterApi.js  # 온통청년 OpenAPI 클라이언트
+│
+├── services/
+│   ├── youthPolicyService.js  # 비즈니스 로직
+│   └── cacheService.js        # 메모리 캐시 (TTL 5분)
+│
+├── tools/
+│   ├── index.js           # Tool 등록 진입점
+│   ├── getTime.js
+│   ├── policySearch.js
+│   ├── policyDetail.js
+│   ├── policyRegion.js
+│   ├── policyCategory.js
+│   └── policyRecommend.js
+│
+├── middleware/
+│   ├── logger.js
+│   ├── errorHandler.js
+│   └── validateRequest.js
+│
+├── models/
+│   ├── policyRequest.js   # Zod 입력 스키마
+│   └── policyResponse.js  # Zod 출력 스키마
+│
+├── utils/
+│   ├── xmlParser.js       # XML → JSON 변환
+│   ├── response.js        # MCP 응답 헬퍼
+│   └── constants.js       # 지역/분야 코드 상수
+│
+└── data/
+    └── samplePolicy.json  # 샘플 데이터
 ```
 
-## Run locally
+## 환경변수 설정
+
+```bash
+cp .env.example .env
+# .env 파일에 YOUTH_API_KEY 입력
+```
+
+```env
+PORT=8080
+YOUTH_API_KEY=발급받은_API_KEY
+MCP_STATELESS=true
+```
+
+## 로컬 실행
 
 ```bash
 npm install
-npm start          # PORT defaults to 8080
-# health
-curl http://localhost:8080/health
+npm start          # PORT 기본값 8080
 ```
 
-### Quick MCP smoke test (curl)
-
-The Streamable HTTP transport requires the `Accept` header to allow both JSON
-and SSE.
-
-```bash
-# initialize
-curl -s http://localhost:8080/mcp \
-  -H "Content-Type: application/json" \
-  -H "Accept: application/json, text/event-stream" \
-  -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"curl","version":"0"}}}'
-
-# tools/list
-curl -s http://localhost:8080/mcp \
-  -H "Content-Type: application/json" \
-  -H "Accept: application/json, text/event-stream" \
-  -d '{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}'
-
-# tools/call
-curl -s http://localhost:8080/mcp \
-  -H "Content-Type: application/json" \
-  -H "Accept: application/json, text/event-stream" \
-  -d '{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"policy_search","arguments":{"query":"청년 주거"}}}'
-```
-
-## MCP Inspector (validate before registering)
+## MCP Inspector 검증
 
 ```bash
 npx @modelcontextprotocol/inspector
 ```
 
-In the Inspector UI:
-
-1. Transport type: **Streamable HTTP**
+1. Transport: **Streamable HTTP**
 2. URL: `http://localhost:8080/mcp`
-3. Connect → run `initialize`, `tools/list`, then `tools/call`.
+3. Connect → `tools/list` → `tools/call`
+
+## curl 스모크 테스트
+
+```bash
+# health
+curl http://localhost:8080/health
+
+# tools/list
+curl -s http://localhost:8080/mcp \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json, text/event-stream" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}'
+
+# policy_search
+curl -s http://localhost:8080/mcp \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json, text/event-stream" \
+  -d '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"policy_search","arguments":{"keyword":"청년취업"}}}'
+
+# policy_region
+curl -s http://localhost:8080/mcp \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json, text/event-stream" \
+  -d '{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"policy_region","arguments":{"region":"서울"}}}'
+
+# policy_recommend
+curl -s http://localhost:8080/mcp \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json, text/event-stream" \
+  -d '{"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"policy_recommend","arguments":{"age":28,"region":"경기","employment":"미취업"}}}'
+```
 
 ## Docker
 
 ```bash
 docker build -t prime-policy .
-docker run -p 8080:8080 prime-policy
+docker run -p 8080:8080 -e YOUTH_API_KEY=발급키 prime-policy
 ```
 
-## PlayMCP registration
+## PlayMCP 등록
 
-1. Push to GitHub over **HTTPS** (not SSH):
-   `https://github.com/DBAJK/Prime-Policy.git`
-2. PlayMCP clones the repo and builds the `Dockerfile` with Kaniko.
-3. Endpoint exposed to PlayMCP: `POST /mcp` (Streamable HTTP).
-4. Auth: extend `routes/mcp.js` with OAuth or a custom header if required.
-
-## Data
-
-`data/policy.json` ships with sample Korean public-support policies. Replace it
-with your real dataset — `services/policyService.js` reads from this file and
-caches it in memory.
+1. GitHub HTTPS 저장소 연결: `https://github.com/DBAJK/Prime-Policy.git`
+2. PlayMCP가 Kaniko로 Dockerfile 빌드
+3. MCP 엔드포인트: `POST /mcp` (Streamable HTTP, Stateless)

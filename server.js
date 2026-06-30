@@ -4,6 +4,7 @@ import { logger } from "./middleware/logger.js";
 import { notFound, errorHandler } from "./middleware/errorHandler.js";
 import healthRoutes from "./routes/health.js";
 import mcpRoutes from "./routes/mcp.js";
+// validateRequest is applied per-route inside routes/mcp.js
 
 const app = express();
 
