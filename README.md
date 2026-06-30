@@ -3,6 +3,10 @@
 온통청년(YouthCenter) OpenAPI를 활용한 **PlayMCP** 등록용 Remote MCP 서버입니다.  
 **Streamable HTTP** 전송 방식, **Stateless** 모드로 동작합니다.
 
+> 온통청년 **신버전 JSON API**(`/go/ythip/getPlcy`)를 사용합니다. (구버전 XML API
+> `/opi/empList.do`는 폐기되었습니다.) 인증 파라미터는 `apiKeyNm`이며, 지역은
+> 법정동코드(`zipCd`), 분류는 대분류명(`lclsfNm`)으로 필터링합니다.
+
 - MCP Spec: 2025-03-26 이상
 - Transport: Streamable HTTP (`POST /mcp`)
 - Health: `GET /health`

@@ -21,9 +21,9 @@ export function registerPolicyRecommend(server) {
     },
     async ({ age, region, employment }) => {
       try {
-        const policies = await recommendPolicies({ age, region, employment });
-        if (!policies.length) return jsonContent({ message: "조건에 맞는 정책을 찾지 못했습니다." });
-        return jsonContent({ total: policies.length, conditions: { age, region, employment }, policies });
+        const { total, items } = await recommendPolicies({ age, region, employment });
+        if (!items.length) return jsonContent({ message: "조건에 맞는 정책을 찾지 못했습니다.", conditions: { age, region, employment } });
+        return jsonContent({ total, conditions: { age, region, employment }, policies: items });
       } catch (e) {
         return errorContent(e.message);
       }

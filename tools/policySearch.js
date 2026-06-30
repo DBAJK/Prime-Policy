@@ -19,9 +19,9 @@ export function registerPolicySearch(server) {
     },
     async ({ keyword, page }) => {
       try {
-        const policies = await searchPolicies(keyword, page);
-        if (!policies.length) return jsonContent({ message: "검색 결과가 없습니다.", keyword });
-        return jsonContent({ total: policies.length, page, policies });
+        const { total, items } = await searchPolicies(keyword, page);
+        if (!items.length) return jsonContent({ message: "검색 결과가 없습니다.", keyword });
+        return jsonContent({ total, page, count: items.length, policies: items });
       } catch (e) {
         return errorContent(e.message);
       }

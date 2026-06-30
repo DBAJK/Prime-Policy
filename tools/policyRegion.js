@@ -20,9 +20,9 @@ export function registerPolicyRegion(server) {
     },
     async ({ region, page }) => {
       try {
-        const policies = await getPoliciesByRegion(region, page);
-        if (!policies.length) return jsonContent({ message: "해당 지역의 정책이 없습니다.", region });
-        return jsonContent({ total: policies.length, region, page, policies });
+        const { total, items } = await getPoliciesByRegion(region, page);
+        if (!items.length) return jsonContent({ message: "해당 지역의 정책이 없습니다.", region });
+        return jsonContent({ total, region, page, count: items.length, policies: items });
       } catch (e) {
         return errorContent(e.message);
       }

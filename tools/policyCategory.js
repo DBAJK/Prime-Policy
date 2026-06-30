@@ -20,9 +20,9 @@ export function registerPolicyCategory(server) {
     },
     async ({ category, page }) => {
       try {
-        const policies = await getPoliciesByCategory(category, page);
-        if (!policies.length) return jsonContent({ message: "해당 분야의 정책이 없습니다.", category });
-        return jsonContent({ total: policies.length, category, page, policies });
+        const { total, items } = await getPoliciesByCategory(category, page);
+        if (!items.length) return jsonContent({ message: "해당 분야의 정책이 없습니다.", category });
+        return jsonContent({ total, category, page, count: items.length, policies: items });
       } catch (e) {
         return errorContent(e.message);
       }
